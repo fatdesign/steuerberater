@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaxFlow | Digitaler Steuerberater</title>
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src='https://unpkg.com/tesseract.js@v5.1.0/dist/tesseract.min.js'></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            /* Slate-950 */
+            color: #f8fafc;
+            /* Slate-50 */
+            overflow: hidden;
+        }
+
+        .glass {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+
+        .sidebar-item-active {
+            background-color: #1e293b;
+            color: #6366f1;
+            /* Indigo-500 */
+            border-right: 3px solid #6366f1;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        .loader {
+            border-top-color: #6366f1;
+            animation: spinner 0.6s linear infinite;
+        }
+
+        @keyframes spinner {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        indigo: { 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' },
+                        slate: { 800: '#1e293b', 900: '#0f172a', 950: '#020617' }
+                    },
+                    borderRadius: { '3xl': '1.5rem', '4xl': '2rem' }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="flex h-screen">
+
+    <!-- Sidebar -->
+    <aside class="w-[260px] border-r border-slate-800 bg-slate-900/50 flex flex-col z-20">
+        <div class="p-6 mb-4">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <i data-lucide="layers" class="text-white w-6 h-6"></i>
+                </div>
+                <h1 class="text-2xl font-black tracking-tighter text-white">TaxFlow</h1>
+            </div>
+        </div>
+
+        <nav class="flex-1 space-y-1">
+            <a href="#" onclick="showSection('dashboard')"
+                class="nav-item flex items-center gap-3 px-6 py-3 text-slate-400 hover:text-indigo-400 hover:bg-slate-800/50 transition-all sidebar-item-active"
+                id="nav-dashboard">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span class="font-bold">Dashboard</span>
+            </a>
+            <a href="#" onclick="showSection('receipts')"
+                class="nav-item flex items-center gap-3 px-6 py-3 text-slate-400 hover:text-indigo-400 hover:bg-slate-800/50 transition-all font-bold"
+                id="nav-receipts">
+                <i data-lucide="receipt" class="w-5 h-5"></i>
+                <span>Belege</span>
+            </a>
+            <a href="#" onclick="showSection('euer')"
+                class="nav-item flex items-center gap-3 px-6 py-3 text-slate-400 hover:text-indigo-400 hover:bg-slate-800/50 transition-all font-bold"
+                id="nav-euer">
+                <i data-lucide="file-text" class="w-5 h-5"></i>
+                <span>EÜR Report</span>
+            </a>
+            <a href="#" onclick="showSection('settings')"
+                class="nav-item flex items-center gap-3 px-6 py-3 text-slate-400 hover:text-indigo-400 hover:bg-slate-800/50 transition-all font-bold"
+                id="nav-settings">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+                <span>Verwaltung</span>
+            </a>
+        </nav>
+
+        <div class="p-6 border-t border-slate-800">
+            <div class="bg-indigo-600/10 p-4 rounded-2xl border border-indigo-500/20 text-center">
+                <p class="text-[10px] text-indigo-400 font-black uppercase tracking-widest mb-1">Status: Lokal & Sicher
+                </p>
+                <div class="flex items-center justify-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                    <span class="text-[10px] text-slate-400">Keine Cloud-Daten</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto relative z-10 p-8">
+        <header class="flex justify-between items-center mb-10">
+            <div>
+                <h2 id="section-title" class="text-3xl font-black text-white tracking-tighter uppercase">Übersicht</h2>
+                <p id="section-subtitle" class="text-slate-500 mt-1 font-bold">Laufendes Geschäftsjahr 2024</p>
+            </div>
+            <div class="flex items-center gap-5">
+                <div class="flex flex-col items-end">
+                    <button onclick="exportData()"
+                        class="text-[10px] font-black text-indigo-400 hover:text-indigo-300 uppercase tracking-widest flex items-center gap-1">
+                        <i data-lucide="download" class="w-3 h-3"></i> Backup erstellen
+                    </button>
+                </div>
+                <div
+                    class="w-12 h-12 rounded-2xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center shadow-xl">
+                    <span class="text-indigo-400 font-black">USER</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Section: Dashboard -->
+        <section id="section-dashboard" class="content-section space-y-8 fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Stat Card: Gewinn -->
+                <div
+                    class="glass p-8 rounded-[2.5rem] border-none bg-indigo-600 shadow-xl shadow-indigo-600/20 group overflow-hidden relative">
+                    <div
+                        class="absolute -right-4 -top-4 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform">
+                    </div>
+                    <p class="text-indigo-100 font-black text-xs uppercase tracking-widest mb-2">Netto-Gewinn</p>
+                    <h3 id="stat-profit" class="text-4xl font-black italic">0,00 €</h3>
+                </div>
+                <!-- Stat Card: Einnahmen -->
+                <div class="glass p-8 rounded-[2.5rem] hover:border-emerald-500/30 transition-all">
+                    <div class="flex justify-between items-center mb-4">
+                        <p class="text-slate-500 font-black text-xs uppercase tracking-widest">Einnahmen</p>
+                        <i data-lucide="arrow-up-right" class="text-emerald-500 w-5 h-5"></i>
+                    </div>
+                    <h3 id="stat-income" class="text-3xl font-black">0,00 €</h3>
+                </div>
+                <!-- Stat Card: Ausgaben -->
+                <div class="glass p-8 rounded-[2.5rem] hover:border-rose-500/30 transition-all">
+                    <div class="flex justify-between items-center mb-4">
+                        <p class="text-slate-500 font-black text-xs uppercase tracking-widest">Ausgaben</p>
+                        <i data-lucide="arrow-down-right" class="text-rose-500 w-5 h-5"></i>
+                    </div>
+                    <h3 id="stat-expense" class="text-3xl font-black">0,00 €</h3>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Activity -->
+                <div class="glass p-8 rounded-[2.5rem]">
+                    <h4 class="text-xl font-black mb-6 uppercase tracking-tight">Letzte Buchungen</h4>
+                    <div id="recent-activity" class="space-y-3">
+                        <!-- Content via JS -->
+                    </div>
+                </div>
+                <!-- Quick Action -->
+                <div class="glass p-8 rounded-[2.5rem] flex flex-col justify-center items-center text-center space-y-6">
+                    <div class="w-20 h-20 bg-indigo-600/20 rounded-3xl flex items-center justify-center">
+                        <i data-lucide="zap" class="w-10 h-10 text-indigo-500"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xl font-black uppercase tracking-tight">Beleg-Blitzanalyse</h4>
+                        <p class="text-slate-500 text-sm mt-2">Nutze unsere lokale KI, um Beträge direkt aus Fotos zu
+                            extrahieren.</p>
+                    </div>
+                    <button onclick="showSection('receipts')"
+                        class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl shadow-lg shadow-indigo-600/20 transition-all uppercase tracking-widest">
+                        Jetzt Scannen
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Receipts -->
+        <section id="section-receipts" class="content-section space-y-8 fade-in hidden">
+            <div class="flex justify-between items-center bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800">
+                <div class="flex items-center gap-4">
+                    <div class="p-3 bg-indigo-500/10 rounded-2xl">
+                        <i data-lucide="info" class="text-indigo-400 w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-white uppercase tracking-tight">Keine API-Keys nötig</p>
+                        <p
+                            class="text-xs text-slate-500 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px] md:max-w-none">
+                            Die Analyse findet 100% lokal in deinem Browser statt.</p>
+                    </div>
+                </div>
+                <label
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-black px-8 py-4 rounded-2xl flex items-center gap-3 cursor-pointer shadow-lg shadow-indigo-500/20 transition-all active:scale-95 uppercase tracking-widest text-sm shrink-0">
+                    <i data-lucide="camera" class="w-5 h-5"></i>
+                    Foto Scan
+                    <input type="file" accept="image/*" class="hidden" onchange="handleFileUpload(event)">
+                </label>
+            </div>
+
+            <div class="glass rounded-[2rem] overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-800 bg-slate-900/30">
+                            <th class="px-6 py-5 text-[10px] text-slate-500 uppercase tracking-[0.2em] font-black">Datum
+                            </th>
+                            <th class="px-6 py-5 text-[10px] text-slate-500 uppercase tracking-[0.2em] font-black">
+                                Details</th>
+                            <th
+                                class="px-6 py-5 text-[10px] text-slate-500 uppercase tracking-[0.2em] font-black text-right">
+                                Betrag</th>
+                            <th class="px-6 py-5"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="receipts-body">
+                        <!-- Content via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section: EÜR Report -->
+        <section id="section-euer" class="content-section space-y-8 fade-in hidden">
+            <div class="glass p-8 rounded-[2.5rem]">
+                <div class="flex justify-between items-center mb-8">
+                    <h4 class="text-2xl font-black uppercase tracking-tighter italic">Anlage EÜR 2024</h4>
+                    <button onclick="window.print()"
+                        class="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl transition text-indigo-400 font-bold flex items-center gap-2 text-xs uppercase tracking-widest">
+                        <i data-lucide="printer" class="w-4 h-4"></i> Drucken
+                    </button>
+                </div>
+                <div class="space-y-2" id="euer-rows">
+                    <!-- Categories will be injected here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Settings/Backup -->
+        <section id="section-settings" class="content-section space-y-8 fade-in hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="glass p-8 rounded-[2.5rem]">
+                    <h4 class="text-xl font-black uppercase tracking-tight mb-4">Export & Backup</h4>
+                    <p class="text-slate-500 text-sm mb-6 font-medium">Lade deine Belegdaten als JSON-Datei herunter, um
+                        sie auf einem anderen Gerät wiederherzustellen oder als Backup zu speichern.</p>
+                    <button onclick="exportData()"
+                        class="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-2xl transition-all uppercase tracking-widest text-sm border border-slate-700 flex items-center justify-center gap-2">
+                        <i data-lucide="download" class="w-5 h-5"></i> JSON Export
+                    </button>
+                </div>
+                <div class="glass p-8 rounded-[2.5rem]">
+                    <h4 class="text-xl font-black uppercase tracking-tight mb-4">Import</h4>
+                    <p class="text-slate-500 text-sm mb-6 font-medium">Wähle eine zuvor exportierte TaxFlow-JSON Datei
+                        aus, um deine Daten in diesen Browser zu importieren.</p>
+                    <label
+                        class="w-full py-4 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 font-black rounded-2xl transition-all uppercase tracking-widest text-sm border border-indigo-500/20 flex items-center justify-center gap-2 cursor-pointer">
+                        <i data-lucide="upload" class="w-5 h-5"></i> Datei wählen
+                        <input type="file" accept=".json" class="hidden" onchange="importData(event)">
+                    </label>
+                </div>
+            </div>
+
+            <div class="glass p-8 rounded-[2.5rem] border-rose-500/20">
+                <h4 class="text-xl font-black uppercase tracking-tight mb-4 text-rose-500">Daten Löschen</h4>
+                <p class="text-slate-500 text-sm mb-6 font-medium">Hiermit werden alle lokal gespeicherten Belege
+                    unwiderruflich aus diesem Browser gelöscht.</p>
+                <button onclick="clearAllData()"
+                    class="px-6 py-3 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white font-black rounded-xl transition-all uppercase tracking-widest text-[10px]">
+                    Gesamten Speicher Leeren
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- OCR Overlay (Fullscreen) -->
+    <div id="ocr-overlay"
+        class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[100] flex flex-col items-center justify-center hidden opacity-0 transition-all duration-500">
+        <div class="text-center space-y-8 p-10 max-w-lg">
+            <div class="relative w-32 h-32 mx-auto">
+                <div class="absolute inset-0 border-4 border-indigo-600/20 rounded-full"></div>
+                <div id="ocr-progress-ring"
+                    class="absolute inset-0 border-4 border-t-indigo-600 rounded-full animate-spin"></div>
+                <i data-lucide="scan" class="absolute inset-0 m-auto text-indigo-400 w-12 h-12"></i>
+            </div>
+            <div>
+                <h4 class="text-3xl font-black uppercase italic tracking-tighter">KI-Analyse läuft</h4>
+                <p id="ocr-status-text" class="text-slate-500 font-bold mt-2 uppercase tracking-widest text-xs">Starte
+                    Tesseract OCR Engine...</p>
+            </div>
+            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div id="ocr-progress-bar" class="h-full bg-indigo-600 transition-all duration-300" style="width: 0%">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation & Detail Modal -->
+    <div id="detail-modal"
+        class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[110] flex items-center justify-center hidden opacity-0 transition-all duration-300">
+        <div class="glass w-full max-w-md p-8 rounded-[3rem] space-y-6">
+            <h4 class="text-2xl font-black uppercase tracking-tight italic">Beleg Bestätigen</h4>
+            <div class="space-y-4">
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-1">Betrag
+                        (€)</label>
+                    <input type="number" step="0.01" id="edit-amount"
+                        class="bg-transparent text-2xl font-black text-white w-full focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+                        <label class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-1">MwSt
+                            (%)</label>
+                        <select id="edit-vat"
+                            class="bg-transparent text-xl font-black text-white w-full focus:outline-none appearance-none">
+                            <option value="19">19%</option>
+                            <option value="7">7%</option>
+                            <option value="0">0%</option>
+                        </select>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+                        <label
+                            class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-1">Typ</label>
+                        <select id="edit-type"
+                            class="bg-transparent text-xl font-black text-white w-full focus:outline-none appearance-none">
+                            <option value="expense">Ausgabe</option>
+                            <option value="income">Einnahme</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-1">Händler /
+                        Details</label>
+                    <input type="text" id="edit-vendor"
+                        class="bg-transparent text-lg font-bold text-white w-full focus:outline-none">
+                </div>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="closeDetailModal()"
+                    class="flex-1 py-4 bg-slate-800 font-bold rounded-2xl uppercase tracking-widest text-xs">Abbrechen</button>
+                <button onclick="saveCurrentReceipt()"
+                    class="flex-1 py-4 bg-indigo-600 shadow-lg shadow-indigo-600/20 font-black rounded-2xl uppercase tracking-widest text-xs">Speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- State Management ---
+        const DB_KEY = 'taxflow_data_v1';
+        let state = JSON.parse(localStorage.getItem(DB_KEY)) || {
+            receipts: []
+        };
+
+        const categories = {
+            'income': 'Umsatzerlöse (1000)',
+            'rent': 'Miete & Pacht (4210)',
+            'software': 'Software & IT (4900)',
+            'office': 'Bürobedarf (4930)',
+            'travel': 'Reisekosten (4670)',
+            'other': 'Übrige Betriebsausgaben'
+        };
+
+        let currentProcessedReceipt = null;
+
+        function saveState() {
+            localStorage.setItem(DB_KEY, JSON.stringify(state));
+            renderAll();
+        }
+
+        // --- OCR Engine ---
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            showOverlay(true);
+            try {
+                const worker = await Tesseract.createWorker('deu', 1, {
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            setOCRProgress(m.progress * 100, `Erkenne Text... ${Math.round(m.progress * 100)}%`);
+                        }
+                    }
+                });
+
+                const { data: { text } } = await worker.recognize(file);
+                await worker.terminate();
+
+                const parsed = parseReceiptText(text);
+                currentProcessedReceipt = parsed;
+
+                showOverlay(false);
+                openDetailModal(parsed);
+            } catch (error) {
+                console.error(error);
+                alert("OCR Fehler: " + error.message);
+                showOverlay(false);
+            }
+            event.target.value = ''; // Reset input
+        }
+
+        function parseReceiptText(text) {
+            console.log("OCR Result:", text);
+            // Regex for amount (finds patterns like 45,20 or 9.99 followed by EUR or €)
+            const amountRegex = /([0-9]+[,\.][0-9]{2})[ \n]?(EUR|€|Summe|Gesamt|Total)/i;
+            const match = text.match(amountRegex) || text.match(/([0-9]+[,\.][0-9]{2})/);
+
+            let amount = 0;
+            if (match) {
+                amount = parseFloat(match[1].replace(',', '.'));
+            }
+
+            // Simple vendor heuristic (first line usually)
+            const vendor = text.trim().split('\n')[0].substring(0, 30);
+
+            return {
+                amount: amount,
+                vendor: vendor || 'Unbekannter Händler',
+                vat: text.includes('19%') ? 19 : (text.includes('7%') ? 7 : 0),
+                type: 'expense',
+                date: new Date().toLocaleDateString('de-DE')
+            };
+        }
+
+        // --- UI Logic ---
+        function showSection(id) {
+            document.querySelectorAll('.content-section').forEach(s => s.classList.add('hidden'));
+            document.getElementById('section-' + id).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('sidebar-item-active'));
+            document.getElementById('nav-' + id).classList.add('sidebar-item-active');
+
+            const sectionTitles = { dashboard: 'Übersicht', receipts: 'Beleg-Archiv', euer: 'EÜR Report', settings: 'Verwaltung' };
+            document.getElementById('section-title').innerText = sectionTitles[id];
+
+            lucide.createIcons();
+        }
+
+        function renderAll() {
+            renderStats();
+            renderReceiptList();
+            renderEUER();
+            renderRecentActivity();
+        }
+
+        function renderStats() {
+            let totalIncome = 0;
+            let totalExpense = 0;
+
+            state.receipts.forEach(r => {
+                const netto = r.amount / (1 + (r.vat / 100));
+                if (r.type === 'income') totalIncome += netto;
+                else totalExpense += netto;
+            });
+
+            const profit = totalIncome - totalExpense;
+
+            document.getElementById('stat-income').innerText = totalIncome.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+            document.getElementById('stat-expense').innerText = totalExpense.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+            document.getElementById('stat-profit').innerText = profit.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+            document.getElementById('stat-profit').classList.remove('text-rose-500', 'text-emerald-400');
+            document.getElementById('stat-profit').classList.add(profit >= 0 ? 'text-white' : 'text-rose-500');
+        }
+
+        function renderReceiptList() {
+            const body = document.getElementById('receipts-body');
+            body.innerHTML = state.receipts.length ? '' : '<tr><td colspan="4" class="p-10 text-center text-slate-600 font-bold uppercase tracking-widest text-xs">Keine Belege gefunden</td></tr>';
+
+            state.receipts.slice().reverse().forEach(r => {
+                body.innerHTML += `
+                    <tr class="border-b border-slate-800 hover:bg-slate-800/20 transition-all group">
+                        <td class="px-6 py-5 text-sm font-bold text-slate-400">${r.date}</td>
+                        <td class="px-6 py-5">
+                            <p class="font-black text-white uppercase tracking-tight">${r.vendor}</p>
+                            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">${r.vat}% MwSt</p>
+                        </td>
+                        <td class="px-6 py-5 text-right">
+                            <span class="text-lg font-black ${r.type === 'income' ? 'text-emerald-500' : 'text-white'}">
+                                ${r.type === 'income' ? '+' : '-'}${r.amount.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+                            </span>
+                        </td>
+                        <td class="px-6 py-5 text-right">
+                            <button onclick="deleteReceipt('${r.id}')" class="text-slate-700 hover:text-rose-500 transition-colors p-2">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        function renderRecentActivity() {
+            const container = document.getElementById('recent-activity');
+            const recent = state.receipts.slice(-4).reverse();
+
+            container.innerHTML = recent.length ? '' : '<p class="text-slate-600 text-xs font-bold uppercase py-4">Keine Aktivität</p>';
+
+            recent.forEach(r => {
+                container.innerHTML += `
+                    <div class="flex items-center justify-between p-4 bg-slate-900/40 rounded-2xl border border-slate-800/50">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center">
+                                <i data-lucide="${r.type === 'income' ? 'trending-up' : 'receipt'}" class="w-5 h-5 text-indigo-400"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-black text-white uppercase tracking-tighter">${r.vendor}</p>
+                                <p class="text-[10px] text-slate-500 font-bold">${r.date}</p>
+                            </div>
+                        </div>
+                        <span class="font-black ${r.type === 'income' ? 'text-emerald-400' : 'text-slate-300'} text-xs">
+                             ${r.type === 'income' ? '+' : '-'}${r.amount.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+                        </span>
+                    </div>
+                `;
+            });
+            lucide.createIcons();
+        }
+
+        function renderEUER() {
+            const container = document.getElementById('euer-rows');
+            let totals = { income: { netto: 0, vat: 0 }, expense: { netto: 0, vat: 0 } };
+
+            state.receipts.forEach(r => {
+                const netto = r.amount / (1 + (r.vat / 100));
+                const vat = r.amount - netto;
+                if (r.type === 'income') { totals.income.netto += netto; totals.income.vat += vat; }
+                else { totals.expense.netto += netto; totals.expense.vat += vat; }
+            });
+
+            container.innerHTML = `
+                <div class="flex justify-between p-6 bg-emerald-500/10 rounded-3xl border border-emerald-500/20 mb-4">
+                    <span class="font-black uppercase text-emerald-500 tracking-tighter">Summe Betriebseinnahmen</span>
+                    <span class="font-black text-xl italic">${totals.income.netto.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}</span>
+                </div>
+                <div class="flex justify-between p-6 bg-rose-500/10 rounded-3xl border border-rose-500/20 mb-4">
+                    <span class="font-black uppercase text-rose-500 tracking-tighter">Summe Betriebsausgaben</span>
+                    <span class="font-black text-xl italic">${totals.expense.netto.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}</span>
+                </div>
+                <div class="h-px bg-slate-800 my-8"></div>
+                <div class="flex justify-between items-center p-8 bg-indigo-600 rounded-[2rem] text-white">
+                    <div>
+                        <p class="text-[10px] font-black uppercase tracking-[0.3em] opacity-80">Ermittelter Gewinn/Verlust</p>
+                        <h4 class="text-4xl font-black italic tracking-tighter">
+                            ${(totals.income.netto - totals.expense.netto).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+                        </h4>
+                    </div>
+                    <i data-lucide="award" class="w-12 h-12 opacity-30"></i>
+                </div>
+            `;
+
+            // Stats on EÜR section
+            const euVat = document.getElementById('euer-vat');
+            if (euVat) euVat.innerText = (totals.income.vat - totals.expense.vat).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+
+            const euProfit = document.getElementById('euer-profit');
+            if (euProfit) euProfit.innerText = (totals.income.netto - totals.expense.netto).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+
+            const euExpenses = document.getElementById('euer-expenses');
+            if (euExpenses) euExpenses.innerText = totals.expense.netto.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+
+            lucide.createIcons();
+        }
+
+        // --- Action Handlers ---
+        function deleteReceipt(id) {
+            if (!confirm("Buchung wirklich löschen?")) return;
+            state.receipts = state.receipts.filter(r => r.id !== id);
+            saveState();
+        }
+
+        function openDetailModal(data) {
+            document.getElementById('edit-amount').value = data.amount;
+            document.getElementById('edit-vat').value = data.vat;
+            document.getElementById('edit-type').value = data.type;
+            document.getElementById('edit-vendor').value = data.vendor;
+
+            const modal = document.getElementById('detail-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+        }
+
+        function saveCurrentReceipt() {
+            const newReceipt = {
+                id: Date.now().toString(),
+                amount: parseFloat(document.getElementById('edit-amount').value),
+                vat: parseInt(document.getElementById('edit-vat').value),
+                type: document.getElementById('edit-type').value,
+                vendor: document.getElementById('edit-vendor').value,
+                date: new Date().toLocaleDateString('de-DE')
+            };
+
+            state.receipts.push(newReceipt);
+            saveState();
+            closeDetailModal();
+            showSection('receipts');
+        }
+
+        function closeDetailModal() {
+            const modal = document.getElementById('detail-modal');
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function showOverlay(show) {
+            const overlay = document.getElementById('ocr-overlay');
+            if (show) {
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            } else {
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.classList.add('hidden'), 500);
+            }
+        }
+
+        function setOCRProgress(val, text) {
+            document.getElementById('ocr-progress-bar').style.width = val + '%';
+            document.getElementById('ocr-status-text').innerText = text;
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "taxflow_backup_" + new Date().toISOString().split('T')[0] + ".json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported.receipts) {
+                        state = imported;
+                        saveState();
+                        alert("Daten erfolgreich importiert!");
+                        showSection('dashboard');
+                    }
+                } catch (err) {
+                    alert("Ungültige Datei!");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function clearAllData() {
+            if (confirm("ACHTUNG: Alle Daten werden gelöscht. Fortfahren?")) {
+                state = { receipts: [] };
+                saveState();
+            }
+        }
+
+        // Init
+        window.onload = () => {
+            renderAll();
+            lucide.createIcons();
+
+            // Check for empty state - intro hint
+            if (state.receipts.length === 0) {
+                setTimeout(() => {
+                    alert("Willkommen bei TaxFlow! Scanne deinen ersten Beleg im Bereich 'Belege', um zu starten.");
+                }, 1000);
+            }
+        };
+    </script>
+</body>
+
+</html>
